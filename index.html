@@ -131,7 +131,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
 <script>
-    // 진현후님의 Firebase 설정값
+   // ==========================================
+    // 킹제이님의 Firebase 설정값
+    // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyCn2FIG7O8uM-oRB1wWTpSTabMo9oooGFw",
         authDomain: "pokemon-quiz-f061a.firebaseapp.com",
@@ -156,10 +158,12 @@
     let maxTime = 10; 
     let timeLeft = maxTime;
 
+    // DOM 요소 (loadingImg 추가됨!)
     const scoreEl = document.getElementById("score");
     const countEl = document.getElementById("question-count");
     const totalCountEl = document.getElementById("total-questions");
     const pokemonImg = document.getElementById("pokemon-img");
+    const loadingImg = document.getElementById("loading-img"); // 👈 새로 추가됨
     const oakImg = document.getElementById("oak-img");
     const speechBubble = document.getElementById("speech-bubble");
     const optionsEl = document.getElementById("options");
@@ -231,7 +235,7 @@
         setTimeout(loadQuestion, 2500);
     }
 
-    // 문제 출제 (버그 수정 핵심 파트)
+    // 🚨 문제 출제 (깜빡임 완벽 차단 로직)
     async function loadQuestion() {
         if (questionCount >= maxQuestions) {
             endGame();
@@ -242,7 +246,7 @@
         stopTimer();
         isClickable = false;
 
-        // UI 초기화 및 로딩 상태
+        // UI 초기화
         timerBar.style.width = "100%";
         timerBar.style.backgroundColor = "#4CAF50";
         timerText.textContent = "로딩 중...";
@@ -250,13 +254,11 @@
         oakImg.src = "oak_normal.png"; 
         speechBubble.textContent = "도감에서 포켓몬을 불러오는 중이란다...";
         
-        // 🚨 로딩 중 처리: 실루엣 해제하고 몬스터볼 표시
-        pokemonImg.classList.remove("silhouette"); 
-        pokemonImg.classList.add("loading-spin"); 
-        pokemonImg.src = "pokeball.png"; 
+        // 🌟 [핵심] 포켓몬 이미지는 아예 숨기고, 몬스터볼만 보여줍니다.
+        pokemonImg.style.display = "none"; 
+        loadingImg.style.display = "block"; 
 
         try {
-            // API 호출 (랜덤 IDs)
             const randomIds = [];
             while(randomIds.length < 4) {
                 const id = Math.floor(Math.random() * 493) + 1;
@@ -274,24 +276,17 @@
             });
             currentAnswer = choices[Math.floor(Math.random() * 4)];
 
-            // 🚨 [깜빡임 버그 수정 핵심 로직] 🚨
-            // 백그라운드에서 진짜 이미지를 완전히 불러올 때까지 기다립니다.
+            // 백그라운드 이미지 로딩
             const tempImg = new Image();
             tempImg.src = currentAnswer.img;
             tempImg.onload = () => {
-                // 이미지가 완전히 로드된 이 시점에!
-                
-                // 1. 몬스터볼 로딩 스핀 애니메이션 제거
-                pokemonImg.classList.remove("loading-spin"); 
-                
-                // 2. ⭐ 선글라스(실루엣 필터)부터 씌웁니다! ⭐
-                pokemonImg.classList.add("silhouette"); 
-                
-                // 3. 필터가 적용된 상태에서 이미지 소스를 진짜 포켓몬으로 교체합니다.
-                // 브라우저는 필터가 이미 적용된 상태로 렌더링하므로 컬러 화면이 절대 보이지 않습니다.
+                // 🌟 [핵심] 로딩이 완전히 끝난 후 화면 전환
                 pokemonImg.src = currentAnswer.img; 
+                pokemonImg.classList.add("silhouette"); // 실루엣 다시 한번 꽉 묶어두기
                 
-                // 게임 시작 처리
+                loadingImg.style.display = "none"; // 몬스터볼 숨김
+                pokemonImg.style.display = "block"; // 흑백 포켓몬 등장! (절대 원본 안보임)
+                
                 speechBubble.textContent = "이 포켓몬은 누구일까?";
                 choices.forEach(choice => {
                     const btn = document.createElement("button");
@@ -317,8 +312,7 @@
         stopTimer();
         Array.from(optionsEl.children).forEach(b => b.disabled = true);
         
-        // 정답 공개 (실루엣 제거)
-        pokemonImg.classList.remove("silhouette"); 
+        pokemonImg.classList.remove("silhouette"); // 정답 맞추면 컬러 공개!
 
         if (selectedName === currentAnswer.name) {
             currentScore += 10;
@@ -339,9 +333,7 @@
         setTimeout(loadQuestion, 2500);
     }
 
-    // ==========================================
     // 랭킹 시스템
-    // ==========================================
     async function endGame() {
         stopTimer();
         document.getElementById("game-container").style.display = "none";
