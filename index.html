@@ -15,14 +15,18 @@
         .btn-ranking { background-color: #2196F3; color: white; }
         .btn-back { background-color: #9e9e9e; color: white; padding: 15px; width: 50%; margin-top: 20px;}
 
-        /* 난이도 버튼 */
-        .diff-btn { display: block; width: 80%; margin: 15px auto; padding: 18px; font-size: 20px; cursor: pointer; border: 2px solid; border-radius: 10px; font-weight: bold; background: white; transition: all 0.2s; }
+        /* 난이도 및 세대 선택 버튼 */
+        .diff-btn { display: block; width: 80%; margin: 10px auto; padding: 18px; font-size: 20px; cursor: pointer; border: 2px solid; border-radius: 10px; font-weight: bold; background: white; transition: all 0.2s; }
         .diff-normal { border-color: #4CAF50; color: #4CAF50; }
         .diff-normal:hover { background: #4CAF50; color: white; }
         .diff-hard { border-color: #FF9800; color: #FF9800; }
         .diff-hard:hover { background: #FF9800; color: white; }
         .diff-master { border-color: #F44336; color: #F44336; }
         .diff-master:hover { background: #F44336; color: white; }
+        
+        /* 세대 선택 드롭다운 스타일 */
+        .gen-select-container { margin: 25px auto; padding: 15px; background: #fffde7; border-radius: 10px; border: 2px dashed #ffeb3b; width: 80%; }
+        select { padding: 10px; font-size: 16px; border-radius: 8px; border: 2px solid #ff9800; font-weight: bold; cursor: pointer; outline: none; width: 100%; margin-top: 10px;}
 
         /* 게임 화면 */
         #game-container { display: none; }
@@ -35,8 +39,6 @@
         .main-area { display: flex; justify-content: space-around; align-items: center; margin-bottom: 30px; height: 300px; }
         .quiz-area { width: 250px; height: 250px; display: flex; justify-content: center; align-items: center; position: relative;}
         #pokemon-img { max-width: 100%; max-height: 100%; transition: filter 0.5s ease; object-fit: contain; }
-        
-        /* 실루엣 클래스 (필터) */
         .silhouette { filter: brightness(0) !important; pointer-events: none; }
         
         .oak-area { width: 40%; position: relative; }
@@ -61,9 +63,9 @@
         .footer-info a { color: #888; text-decoration: none; }
         .footer-info a:hover { text-decoration: underline; }
         
-        /* 로딩 중 몬스터볼 애니메이션 */
+        /* 로딩 애니메이션 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .loading-spin { animation: spin 2s linear infinite; width: 100px !important; height: 100px !important; filter: none !important;}
+        .loading-spin { animation: spin 2s linear infinite; }
     </style>
 </head>
 <body>
@@ -78,7 +80,17 @@
         </div>
 
         <div id="difficulty-options" style="display: none;">
-            <h2 style="color: #555; margin-bottom: 20px;">도전할 난이도를 선택하렴!</h2>
+            <div class="gen-select-container">
+                <label for="gen-select" style="font-size: 18px; color: #555; font-weight: bold;">🗺️ 출제할 포켓몬 세대를 선택하렴!</label>
+                <select id="gen-select">
+                    <option value="1-151">🔴 1세대 (근본 관동지방 1~151번)</option>
+                    <option value="152-251">🟡 2세대 (성도지방 152~251번)</option>
+                    <option value="1-251">🟠 1~2세대 (관동+성도 1~251번)</option>
+                    <option value="1-493" selected>🌈 전체 랜덤 (1~4세대 모두 출제!)</option>
+                </select>
+            </div>
+
+            <h2 style="color: #555; margin-top: 20px; margin-bottom: 15px;">도전할 난이도를 고르렴!</h2>
             <button class="diff-btn diff-normal" onclick="startGame('normal')">🟢 노말 (10문제 / 10초)</button>
             <button class="diff-btn diff-hard" onclick="startGame('hard')">🟠 어려움 (20문제 / 5초)</button>
             <button class="diff-btn diff-master" onclick="startGame('master')">🔴 포켓몬 마스터 (30문제 / 3초)</button>
@@ -99,14 +111,14 @@
             <div id="timer-bar-bg"><div id="timer-bar"></div></div>
         </div>
         
-       <div class="main-area">
+        <div class="main-area">
             <div class="quiz-area" style="position: relative;">
                 <img id="loading-img" class="loading-spin" src="pokeball.png" alt="로딩중" style="display: none; position: absolute; z-index: 2; width: 100px; height: 100px;">
                 
                 <img id="pokemon-img" class="silhouette" src="" alt="포켓몬" style="opacity: 0; position: absolute; max-width: 100%; max-height: 100%; z-index: 1; transition: opacity 0.3s ease;">
             </div>
             <div class="oak-area">
-                <div id="speech-bubble" class="speech-bubble">이 포켓몬은 뭘까~~요?</div>
+                <div id="speech-bubble" class="speech-bubble">이 포켓몬은 누구일까?</div>
                 <img id="oak-img" src="oak_normal.png" alt="오박사님">
             </div>
         </div>
@@ -131,9 +143,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
 <script>
-   // ==========================================
-    // 킹제이님의 Firebase 설정값
-    // ==========================================
+    // Firebase 설정
     const firebaseConfig = {
         apiKey: "AIzaSyCn2FIG7O8uM-oRB1wWTpSTabMo9oooGFw",
         authDomain: "pokemon-quiz-f061a.firebaseapp.com",
@@ -154,23 +164,25 @@
     let currentAnswer = "";
     let isClickable = false;
 
+    // 🌟 세대 선택용 변수 추가
+    let minPokeId = 1;
+    let maxPokeId = 493;
+
     let timerInterval;
     let maxTime = 10; 
     let timeLeft = maxTime;
 
-    // DOM 요소 (loadingImg 추가됨!)
     const scoreEl = document.getElementById("score");
     const countEl = document.getElementById("question-count");
     const totalCountEl = document.getElementById("total-questions");
     const pokemonImg = document.getElementById("pokemon-img");
-    const loadingImg = document.getElementById("loading-img"); // 👈 새로 추가됨
+    const loadingImg = document.getElementById("loading-img");
     const oakImg = document.getElementById("oak-img");
     const speechBubble = document.getElementById("speech-bubble");
     const optionsEl = document.getElementById("options");
     const timerText = document.getElementById("timer-text");
     const timerBar = document.getElementById("timer-bar");
 
-    // 화면 전환 함수들
     function showDifficulty() {
         document.getElementById("main-buttons").style.display = "none";
         document.getElementById("difficulty-options").style.display = "block";
@@ -180,9 +192,15 @@
         document.getElementById("main-buttons").style.display = "block";
     }
 
-    // 게임 시작
+    // 🌟 게임 시작 시 드롭다운에서 세대 정보 읽어오기
     function startGame(difficulty) {
         currentDifficulty = difficulty;
+        
+        // 사용자가 선택한 세대(도감 번호 범위) 가져오기
+        const genSelect = document.getElementById("gen-select").value.split("-");
+        minPokeId = parseInt(genSelect[0]);
+        maxPokeId = parseInt(genSelect[1]);
+
         if (difficulty === 'normal') { maxQuestions = 10; maxTime = 10; }
         else if (difficulty === 'hard') { maxQuestions = 20; maxTime = 5; }
         else if (difficulty === 'master') { maxQuestions = 30; maxTime = 3; }
@@ -197,7 +215,6 @@
         loadQuestion();
     }
 
-    // 타이머 로직
     function startTimer() {
         clearInterval(timerInterval);
         timeLeft = maxTime;
@@ -218,14 +235,13 @@
         else timerBar.style.backgroundColor = "#F44336"; 
     }
 
-    // 시간 초과
     function timeOver() {
         if (!isClickable) return;
         isClickable = false;
         stopTimer();
         Array.from(optionsEl.children).forEach(b => b.disabled = true);
         
-        pokemonImg.classList.remove("silhouette"); // 정답 공개
+        pokemonImg.classList.remove("silhouette"); 
         
         Array.from(optionsEl.children).forEach(b => {
             if (b.textContent === currentAnswer.name) b.style.backgroundColor = "#4CAF50";
@@ -235,8 +251,7 @@
         setTimeout(loadQuestion, 2500);
     }
 
-    // 🚨 문제 출제 (깜빡임 완벽 차단 로직)
-    // 🚨 문제 출제 (투명도 활용으로 깜빡임/하얀화면 완벽 차단)
+    // 🚨 문제 출제 로직
     async function loadQuestion() {
         if (questionCount >= maxQuestions) {
             endGame();
@@ -247,7 +262,6 @@
         stopTimer();
         isClickable = false;
 
-        // UI 초기화
         timerBar.style.width = "100%";
         timerBar.style.backgroundColor = "#4CAF50";
         timerText.textContent = "로딩 중...";
@@ -255,7 +269,6 @@
         oakImg.src = "oak_normal.png"; 
         speechBubble.textContent = "도감에서 포켓몬을 불러오는 중이란다...";
         
-        // 🌟 [수정된 부분] 이미지를 투명(0)하게 만들고, 까만 필터(silhouette)를 미리 씌워둡니다.
         loadingImg.style.display = "block"; 
         pokemonImg.style.opacity = "0"; 
         pokemonImg.classList.add("silhouette"); 
@@ -263,9 +276,11 @@
         try {
             const randomIds = [];
             while(randomIds.length < 4) {
-                const id = Math.floor(Math.random() * 493) + 1;
+                // 🌟 사용자가 선택한 세대 번호(minPokeId ~ maxPokeId) 안에서만 랜덤 뽑기!
+                const id = Math.floor(Math.random() * (maxPokeId - minPokeId + 1)) + minPokeId;
                 if(!randomIds.includes(id)) randomIds.push(id);
             }
+            
             const fetchPromises = randomIds.map(id => fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`).then(res => res.json()));
             const speciesData = await Promise.all(fetchPromises);
             
@@ -278,17 +293,14 @@
             });
             currentAnswer = choices[Math.floor(Math.random() * 4)];
 
-            // 🌟 [수정된 부분] 투명한 상태로 이미지를 불러옵니다.
             const tempImg = new Image();
             tempImg.src = currentAnswer.img;
             tempImg.onload = () => {
-                // 로딩 완료 후 화면에 표시
                 pokemonImg.src = currentAnswer.img; 
+                loadingImg.style.display = "none"; 
+                pokemonImg.style.opacity = "1";    
                 
-                loadingImg.style.display = "none"; // 🌀 이모지 숨김
-                pokemonImg.style.opacity = "1";    // 투명도를 100%로 복구! (이미 까만 필터가 발라져 있어서 스포일러 절대 안됨)
-                
-                speechBubble.textContent = "이 포켓몬은 뭘까~~~~요?";
+                speechBubble.textContent = "이 포켓몬은 누구일까?";
                 choices.forEach(choice => {
                     const btn = document.createElement("button");
                     btn.className = "option-btn";
@@ -306,14 +318,13 @@
         }
     }
 
-    // 정답 확인
     function checkAnswer(selectedName, btn) {
         if (!isClickable) return;
         isClickable = false;
         stopTimer();
         Array.from(optionsEl.children).forEach(b => b.disabled = true);
         
-        pokemonImg.classList.remove("silhouette"); // 정답 맞추면 컬러 공개!
+        pokemonImg.classList.remove("silhouette"); 
 
         if (selectedName === currentAnswer.name) {
             currentScore += 10;
@@ -328,13 +339,12 @@
             Array.from(optionsEl.children).forEach(b => {
                 if (b.textContent === currentAnswer.name) b.style.backgroundColor = "#4CAF50";
             });
-            speechBubble.textContent = "아니란다~ 눈이 많이 않좋니?";
+            speechBubble.textContent = "아니란다~ 다시 생각해보렴.";
             oakImg.src = "oak_sad.png"; 
         }
         setTimeout(loadQuestion, 2500);
     }
 
-    // 랭킹 시스템
     async function endGame() {
         stopTimer();
         document.getElementById("game-container").style.display = "none";
