@@ -106,7 +106,7 @@
                 <img id="pokemon-img" class="silhouette" src="" alt="포켓몬" style="opacity: 0; position: absolute; max-width: 100%; max-height: 100%; z-index: 1; transition: opacity 0.3s ease;">
             </div>
             <div class="oak-area">
-                <div id="speech-bubble" class="speech-bubble">이 포켓몬은 누구일까?</div>
+                <div id="speech-bubble" class="speech-bubble">이 포켓몬은 뭘까~~요?</div>
                 <img id="oak-img" src="oak_normal.png" alt="오박사님">
             </div>
         </div>
@@ -288,7 +288,7 @@
                 loadingImg.style.display = "none"; // 🌀 이모지 숨김
                 pokemonImg.style.opacity = "1";    // 투명도를 100%로 복구! (이미 까만 필터가 발라져 있어서 스포일러 절대 안됨)
                 
-                speechBubble.textContent = "이 포켓몬은 누구일까?";
+                speechBubble.textContent = "이 포켓몬은 뭘까~~~~요?";
                 choices.forEach(choice => {
                     const btn = document.createElement("button");
                     btn.className = "option-btn";
@@ -328,7 +328,7 @@
             Array.from(optionsEl.children).forEach(b => {
                 if (b.textContent === currentAnswer.name) b.style.backgroundColor = "#4CAF50";
             });
-            speechBubble.textContent = "아니란다~ 다시 생각해보렴.";
+            speechBubble.textContent = "아니란다~ 눈이 많이 않좋니?";
             oakImg.src = "oak_sad.png"; 
         }
         setTimeout(loadQuestion, 2500);
