@@ -33,13 +33,15 @@
         #timer-bar { height: 100%; width: 100%; background-color: #4CAF50; transition: width 1s linear, background-color 0.5s; }
 
         .main-area { display: flex; justify-content: space-around; align-items: center; margin-bottom: 30px; height: 300px; }
-        .quiz-area { width: 50%; display: flex; justify-content: center; align-items: center; }
-        #pokemon-img { width: 250px; height: 250px; transition: filter 0.5s ease; object-fit: contain; }
-        .silhouette { filter: brightness(0); pointer-events: none; }
+        .quiz-area { width: 250px; height: 250px; display: flex; justify-content: center; align-items: center; position: relative;}
+        #pokemon-img { max-width: 100%; max-height: 100%; transition: filter 0.5s ease; object-fit: contain; }
+        
+        /* 실루엣 클래스 (필터) */
+        .silhouette { filter: brightness(0) !important; pointer-events: none; }
         
         .oak-area { width: 40%; position: relative; }
         #oak-img { width: 200px; height: auto; }
-        .speech-bubble { position: absolute; top: -40px; left: -20px; background: #fff; border: 2px solid #333; padding: 15px; border-radius: 20px; font-weight: bold; width: 180px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        .speech-bubble { position: absolute; top: -40px; left: -20px; background: #fff; border: 2px solid #333; padding: 15px; border-radius: 20px; font-weight: bold; width: 180px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); z-index: 10;}
 
         .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .option-btn { padding: 15px; font-size: 18px; cursor: pointer; border: 2px solid #4CAF50; background-color: white; border-radius: 8px; transition: all 0.2s; font-weight: bold; }
@@ -61,7 +63,7 @@
         
         /* 로딩 중 몬스터볼 애니메이션 */
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .loading-spin { animation: spin 2s linear infinite; width: 100px !important; height: 100px !important; }
+        .loading-spin { animation: spin 2s linear infinite; width: 100px !important; height: 100px !important; filter: none !important;}
     </style>
 </head>
 <body>
@@ -99,7 +101,7 @@
         
         <div class="main-area">
             <div class="quiz-area">
-                <img id="pokemon-img" class="silhouette" src="" alt="포켓몬">
+                <img id="pokemon-img" src="" alt="포켓몬">
             </div>
             <div class="oak-area">
                 <div id="speech-bubble" class="speech-bubble">이 포켓몬은 누구일까?</div>
@@ -127,6 +129,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
 <script>
+    // 진현후님의 Firebase 설정값
     const firebaseConfig = {
         apiKey: "AIzaSyCn2FIG7O8uM-oRB1wWTpSTabMo9oooGFw",
         authDomain: "pokemon-quiz-f061a.firebaseapp.com",
@@ -140,7 +143,7 @@
     const db = firebase.firestore();
 
     // 상태 변수
-    let currentDifficulty = 'normal'; // 현재 플레이 중인 난이도 저장용
+    let currentDifficulty = 'normal';
     let currentScore = 0;
     let questionCount = 0;
     let maxQuestions = 10; 
@@ -161,18 +164,19 @@
     const timerText = document.getElementById("timer-text");
     const timerBar = document.getElementById("timer-bar");
 
+    // 화면 전환 함수들
     function showDifficulty() {
         document.getElementById("main-buttons").style.display = "none";
         document.getElementById("difficulty-options").style.display = "block";
     }
-
     function goBackToMain() {
         document.getElementById("difficulty-options").style.display = "none";
         document.getElementById("main-buttons").style.display = "block";
     }
 
+    // 게임 시작
     function startGame(difficulty) {
-        currentDifficulty = difficulty; // 선택한 난이도 저장
+        currentDifficulty = difficulty;
         if (difficulty === 'normal') { maxQuestions = 10; maxTime = 10; }
         else if (difficulty === 'hard') { maxQuestions = 20; maxTime = 5; }
         else if (difficulty === 'master') { maxQuestions = 30; maxTime = 3; }
@@ -187,96 +191,76 @@
         loadQuestion();
     }
 
-    function getRandomIDs(count, maxId = 493) {
-        const ids = new Set();
-        while(ids.size < count) { ids.add(Math.floor(Math.random() * maxId) + 1); }
-        return Array.from(ids);
-    }
-
+    // 타이머 로직
     function startTimer() {
         clearInterval(timerInterval);
         timeLeft = maxTime;
         updateTimerUI();
-
         timerInterval = setInterval(() => {
             timeLeft--;
             updateTimerUI();
             if (timeLeft <= 0) timeOver();
         }, 1000);
     }
-
     function stopTimer() { clearInterval(timerInterval); }
-
     function updateTimerUI() {
         timerText.textContent = `남은 시간: ${timeLeft}초`;
         const percentage = (timeLeft / maxTime) * 100;
         timerBar.style.width = percentage + "%";
-
-        if (percentage > 50) {
-            timerBar.style.backgroundColor = "#4CAF50"; 
-            timerText.style.color = "#555";
-        } else if (percentage > 25) {
-            timerBar.style.backgroundColor = "#FF9800"; 
-            timerText.style.color = "#FF9800";
-        } else {
-            timerBar.style.backgroundColor = "#F44336"; 
-            timerText.style.color = "#F44336";
-        }
+        if (percentage > 50) timerBar.style.backgroundColor = "#4CAF50"; 
+        else if (percentage > 25) timerBar.style.backgroundColor = "#FF9800"; 
+        else timerBar.style.backgroundColor = "#F44336"; 
     }
 
+    // 시간 초과
     function timeOver() {
         if (!isClickable) return;
         isClickable = false;
         stopTimer();
-
         Array.from(optionsEl.children).forEach(b => b.disabled = true);
-        pokemonImg.classList.remove("silhouette");
-
+        
+        pokemonImg.classList.remove("silhouette"); // 정답 공개
+        
         Array.from(optionsEl.children).forEach(b => {
-            if (b.textContent === currentAnswer.name) {
-                b.style.backgroundColor = "#4CAF50";
-                b.style.color = "white";
-            }
+            if (b.textContent === currentAnswer.name) b.style.backgroundColor = "#4CAF50";
         });
-
         speechBubble.textContent = "시간 초과란다! 조금 더 서두르렴.";
-        speechBubble.style.color = "red";
         oakImg.src = "oak_sad.png"; 
-
         setTimeout(loadQuestion, 2500);
     }
 
+    // 문제 출제 (버그 수정 핵심 파트)
     async function loadQuestion() {
         if (questionCount >= maxQuestions) {
             endGame();
             return;
         }
-
         questionCount++;
         countEl.textContent = questionCount;
-        
         stopTimer();
+        isClickable = false;
+
+        // UI 초기화 및 로딩 상태
         timerBar.style.width = "100%";
         timerBar.style.backgroundColor = "#4CAF50";
         timerText.textContent = "로딩 중...";
-        timerText.style.color = "#555";
-        
-        // 🚨 1. 로딩 중 몬스터볼 표시 처리
-        pokemonImg.classList.remove("silhouette"); // 실루엣 제거 (몬스터볼 색상 보이기)
-        pokemonImg.classList.add("loading-spin"); // 빙글빙글 도는 애니메이션 추가
-        pokemonImg.src = "pokeball.png"; // 몬스터볼 이미지 띄우기 (폴더에 pokeball.png 가 있어야 합니다!)
-        
+        optionsEl.innerHTML = "";
         oakImg.src = "oak_normal.png"; 
         speechBubble.textContent = "도감에서 포켓몬을 불러오는 중이란다...";
-        speechBubble.style.color = "black";
-        optionsEl.innerHTML = "";
-        isClickable = false;
+        
+        // 🚨 로딩 중 처리: 실루엣 해제하고 몬스터볼 표시
+        pokemonImg.classList.remove("silhouette"); 
+        pokemonImg.classList.add("loading-spin"); 
+        pokemonImg.src = "pokeball.png"; 
 
         try {
-            const randomIds = getRandomIDs(4);
-            const fetchPromises = randomIds.map(id => 
-                fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`).then(res => res.json())
-            );
+            // API 호출 (랜덤 IDs)
+            const randomIds = [];
+            while(randomIds.length < 4) {
+                const id = Math.floor(Math.random() * 493) + 1;
+                if(!randomIds.includes(id)) randomIds.push(id);
+            }
+            const fetchPromises = randomIds.map(id => fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`).then(res => res.json()));
             const speciesData = await Promise.all(fetchPromises);
             
             const choices = speciesData.map(data => {
@@ -286,18 +270,26 @@
                     img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`
                 };
             });
-
             currentAnswer = choices[Math.floor(Math.random() * 4)];
 
-            // 🚨 2. 진짜 포켓몬 이미지를 백그라운드에서 미리 로드하기
-            const realImg = new Image();
-            realImg.src = currentAnswer.img;
-            realImg.onload = () => {
-                // 진짜 포켓몬 로딩이 끝나면 몬스터볼을 진짜 포켓몬으로 교체!
-                pokemonImg.classList.remove("loading-spin"); // 도는 애니메이션 중지
-                pokemonImg.src = currentAnswer.img; // 포켓몬 이미지 세팅
-                pokemonImg.classList.add("silhouette"); // 다시 까맣게 칠하기
+            // 🚨 [깜빡임 버그 수정 핵심 로직] 🚨
+            // 백그라운드에서 진짜 이미지를 완전히 불러올 때까지 기다립니다.
+            const tempImg = new Image();
+            tempImg.src = currentAnswer.img;
+            tempImg.onload = () => {
+                // 이미지가 완전히 로드된 이 시점에!
                 
+                // 1. 몬스터볼 로딩 스핀 애니메이션 제거
+                pokemonImg.classList.remove("loading-spin"); 
+                
+                // 2. ⭐ 선글라스(실루엣 필터)부터 씌웁니다! ⭐
+                pokemonImg.classList.add("silhouette"); 
+                
+                // 3. 필터가 적용된 상태에서 이미지 소스를 진짜 포켓몬으로 교체합니다.
+                // 브라우저는 필터가 이미 적용된 상태로 렌더링하므로 컬러 화면이 절대 보이지 않습니다.
+                pokemonImg.src = currentAnswer.img; 
+                
+                // 게임 시작 처리
                 speechBubble.textContent = "이 포켓몬은 누구일까?";
                 choices.forEach(choice => {
                     const btn = document.createElement("button");
@@ -311,17 +303,19 @@
             };
 
         } catch (error) {
-            console.error("PokeAPI 에러:", error);
+            console.error("API 에러:", error);
             speechBubble.textContent = "통신에 문제가 생겼구나! 새로고침 해보렴.";
         }
     }
 
+    // 정답 확인
     function checkAnswer(selectedName, btn) {
         if (!isClickable) return;
         isClickable = false;
-        
         stopTimer();
         Array.from(optionsEl.children).forEach(b => b.disabled = true);
+        
+        // 정답 공개 (실루엣 제거)
         pokemonImg.classList.remove("silhouette"); 
 
         if (selectedName === currentAnswer.name) {
@@ -329,101 +323,65 @@
             scoreEl.textContent = currentScore;
             btn.style.backgroundColor = "#4CAF50";
             btn.style.color = "white";
-            
             speechBubble.textContent = "잘했구나! 정답이란다!";
-            speechBubble.style.color = "blue";
             oakImg.src = "oak_smile.png"; 
         } else {
             btn.style.backgroundColor = "#f44336";
             btn.style.color = "white";
-            
             Array.from(optionsEl.children).forEach(b => {
-                if (b.textContent === currentAnswer.name) {
-                    b.style.backgroundColor = "#4CAF50";
-                    b.style.color = "white";
-                }
+                if (b.textContent === currentAnswer.name) b.style.backgroundColor = "#4CAF50";
             });
-
             speechBubble.textContent = "아니란다~ 다시 생각해보렴.";
-            speechBubble.style.color = "red";
             oakImg.src = "oak_sad.png"; 
         }
-
         setTimeout(loadQuestion, 2500);
     }
 
     // ==========================================
-    // 난이도별 랭킹 시스템
+    // 랭킹 시스템
     // ==========================================
-    
     async function endGame() {
         stopTimer();
         document.getElementById("game-container").style.display = "none";
         document.getElementById("ranking-board").style.display = "block";
-        
         const playerName = prompt(`[${currentDifficulty.toUpperCase()}] 게임 종료!\n랭킹에 등록할 이름을 입력하세요:`) || "익명 트레이너";
         const listEl = document.getElementById("ranking-list");
-        listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>서버에 랭킹을 저장하는 중...</div>";
-
+        listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>저장 중...</div>";
         try {
-            // 선택했던 난이도 이름표를 붙여서 DB 컬렉션 분리 저장! (ex: pokeRankings_normal)
             await db.collection("pokeRankings_" + currentDifficulty).add({
-                name: playerName,
-                score: currentScore,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                name: playerName, score: currentScore, timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            // 저장 후 현재 플레이한 난이도 랭킹 띄우기
             fetchAndDisplayRankings(currentDifficulty);
-        } catch (error) {
-            console.error("랭킹 저장 에러:", error);
-            listEl.innerHTML = "<div class='rank-item' style='color:red;'>랭킹 서버 오류가 발생했습니다.</div>";
+        } catch (e) {
+            listEl.innerHTML = "저장 실패";
         }
     }
 
     function showRankingFromMain() {
         document.getElementById("main-screen").style.display = "none";
         document.getElementById("ranking-board").style.display = "block";
-        fetchAndDisplayRankings('normal'); // 기본으로 노말 랭킹 띄우기
+        fetchAndDisplayRankings('normal');
     }
 
-    // 특정 난이도의 랭킹을 DB에서 불러와서 그리는 함수
     async function fetchAndDisplayRankings(difficulty) {
-        // 탭 버튼 색상 활성화 처리
         document.querySelectorAll('.rank-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`tab-${difficulty}`).classList.add('active');
-
         const listEl = document.getElementById("ranking-list");
-        listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>서버에서 랭킹을 불러오는 중...</div>";
-        
+        listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>불러오는 중...</div>";
         try {
-            // 해당 난이도의 컬렉션에서 데이터 가져오기
-            const snapshot = await db.collection("pokeRankings_" + difficulty)
-                                     .orderBy("score", "desc")
-                                     .limit(5)
-                                     .get();
-            
+            const snapshot = await db.collection("pokeRankings_" + difficulty).orderBy("score", "desc").limit(5).get();
             listEl.innerHTML = ""; 
-            
             if (snapshot.empty) {
-                listEl.innerHTML = "<div class='rank-item' style='justify-content:center; color:#888;'>아직 이 난이도에 등록된 랭커가 없습니다!</div>";
+                listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>랭커가 없습니다!</div>";
                 return;
             }
-
             let rank = 1;
             snapshot.forEach((doc) => {
                 const r = doc.data();
-                const color = rank === 1 ? "#FFD700" : "#333";
-                listEl.innerHTML += `
-                    <div class="rank-item" style="color: ${color};">
-                        <span>${rank}위: ${r.name}</span> 
-                        <span style="color:#4CAF50;">${r.score}점</span>
-                    </div>`;
+                listEl.innerHTML += `<div class="rank-item"><span>${rank}위: ${r.name}</span> <span style="color:#4CAF50;">${r.score}점</span></div>`;
                 rank++;
             });
-        } catch (error) {
-            console.error("랭킹 불러오기 에러:", error);
-            listEl.innerHTML = "<div class='rank-item' style='color:red;'>데이터베이스 연결에 실패했습니다.</div>";
-        }
+        } catch (e) { listEl.innerHTML = "불러오기 실패"; }
     }
 </script>
 </body>
