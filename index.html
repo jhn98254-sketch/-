@@ -96,13 +96,13 @@
 
             <h2 style="color: #555; margin-top: 20px; margin-bottom: 15px;">도전할 난이도를 고르렴!</h2>
             <button class="diff-btn diff-normal" onclick="startGame('normal')">🟢 노말 (10문제 / 10초)</button>
-            <button class="diff-btn diff-hard" onclick="startGame('hard')">🟠 어려움 (20문제 / 5초)</button>
-            <button class="diff-btn diff-master" onclick="startGame('master')">🔴 포켓몬 마스터 (30문제 / 3초)</button>
+            <button class="diff-btn diff-hard" onclick="startGame('hard')">🟠 어려움 (10문제 / 5초)</button>
+            <button class="diff-btn diff-master" onclick="startGame('master')">🔴 포켓몬 마스터 (10문제 / 3초)</button>
             <button class="menu-btn btn-back" onclick="goBackToMain()">뒤로 가기</button>
         </div>
 
         <div class="footer-info">
-            <p>🛠️ <strong>제작자:</strong> 킹제이 | 본 프로젝트는 비상업적 목적으로 제작된 팬 메이드 콘텐츠입니다.</p>
+            <p>🛠️ <strong>제작자:</strong> Kingj | 본 프로젝트는 비상업적 목적으로 제작된 팬 메이드 콘텐츠입니다.</p>
             <p><strong>API 출처:</strong> <a href="https://pokeapi.co/" target="_blank">PokeAPI</a> | <strong>저작권:</strong> © Pokémon. © Nintendo / Creatures Inc. / GAME FREAK inc.</p>
         </div>
     </div>
@@ -206,8 +206,8 @@
         maxPokeId = parseInt(genSelect[1]);
 
         if (difficulty === 'normal') { maxQuestions = 10; maxTime = 10; }
-        else if (difficulty === 'hard') { maxQuestions = 20; maxTime = 5; }
-        else if (difficulty === 'master') { maxQuestions = 30; maxTime = 3; }
+        else if (difficulty === 'hard') { maxQuestions = 10; maxTime = 5; }
+        else if (difficulty === 'master') { maxQuestions = 10; maxTime = 3; }
 
         currentScore = 0;
         questionCount = 0;
@@ -304,7 +304,7 @@
                 loadingImg.style.display = "none"; 
                 pokemonImg.style.opacity = "1";    
                 
-                speechBubble.textContent = "이 포켓몬은 누구일까?";
+                speechBubble.textContent = "이 포켓몬은 누구뭘까~~~요?";
                 choices.forEach(choice => {
                     const btn = document.createElement("button");
                     btn.className = "option-btn";
