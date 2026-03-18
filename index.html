@@ -99,9 +99,11 @@
             <div id="timer-bar-bg"><div id="timer-bar"></div></div>
         </div>
         
-        <div class="main-area">
-            <div class="quiz-area">
-                <img id="pokemon-img" src="" alt="포켓몬">
+       <div class="main-area">
+            <div class="quiz-area" style="position: relative;">
+                <img id="loading-img" class="loading-spin" src="pokeball.png" alt="로딩중" style="display: none; position: absolute;">
+                
+                <img id="pokemon-img" class="silhouette" src="" alt="포켓몬" style="display: none; position: absolute; max-width: 100%; max-height: 100%;">
             </div>
             <div class="oak-area">
                 <div id="speech-bubble" class="speech-bubble">이 포켓몬은 누구일까?</div>
