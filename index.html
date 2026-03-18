@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>포켓몬 실루엣 퀴즈</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; background-color: #f0f8ff; margin-top: 50px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        /* 메인 화면 */
+        #main-screen h1 { font-size: 36px; color: #ffcb05; text-shadow: 2px 2px 0 #3b4cca, -2px -2px 0 #3b4cca, 2px -2px 0 #3b4cca, -2px 2px 0 #3b4cca; margin-bottom: 30px; }
+        .menu-btn { display: block; width: 80%; margin: 15px auto; padding: 20px; font-size: 22px; cursor: pointer; border: none; border-radius: 10px; font-weight: bold; transition: transform 0.2s; }
+        .menu-btn:hover { transform: scale(1.05); }
+        .btn-start { background-color: #4CAF50; color: white; }
+        .btn-ranking { background-color: #2196F3; color: white; }
+        .btn-back { background-color: #9e9e9e; color: white; padding: 15px; width: 50%; margin-top: 20px;}
+
+        /* 난이도 버튼 */
+        .diff-btn { display: block; width: 80%; margin: 15px auto; padding: 18px; font-size: 20px; cursor: pointer; border: 2px solid; border-radius: 10px; font-weight: bold; background: white; transition: all 0.2s; }
+        .diff-normal { border-color: #4CAF50; color: #4CAF50; }
+        .diff-normal:hover { background: #4CAF50; color: white; }
+        .diff-hard { border-color: #FF9800; color: #FF9800; }
+        .diff-hard:hover { background: #FF9800; color: white; }
+        .diff-master { border-color: #F44336; color: #F44336; }
+        .diff-master:hover { background: #F44336; color: white; }
+
+        /* 게임 화면 */
+        #game-container { display: none; }
+        #header { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #333; }
+        #timer-container { margin: 10px auto 20px; width: 80%; }
+        #timer-text { font-size: 18px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        #timer-bar-bg { width: 100%; background: #eee; height: 15px; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+        #timer-bar { height: 100%; width: 100%; background-color: #4CAF50; transition: width 1s linear, background-color 0.5s; }
+
+        .main-area { display: flex; justify-content: space-around; align-items: center; margin-bottom: 30px; height: 300px; }
+        .quiz-area { width: 50%; display: flex; justify-content: center; align-items: center; }
+        #pokemon-img { width: 250px; height: 250px; transition: filter 0.5s ease; object-fit: contain; }
+        .silhouette { filter: brightness(0); pointer-events: none; }
+        
+        .oak-area { width: 40%; position: relative; }
+        #oak-img { width: 200px; height: auto; }
+        .speech-bubble { position: absolute; top: -40px; left: -20px; background: #fff; border: 2px solid #333; padding: 15px; border-radius: 20px; font-weight: bold; width: 180px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .option-btn { padding: 15px; font-size: 18px; cursor: pointer; border: 2px solid #4CAF50; background-color: white; border-radius: 8px; transition: all 0.2s; font-weight: bold; }
+        .option-btn:hover:not(:disabled) { background-color: #4CAF50; color: white; }
+        .option-btn:disabled { cursor: not-allowed; opacity: 0.9; }
+
+        /* 랭킹 게시판 및 탭 버튼 */
+        #ranking-board { display: none; }
+        #ranking-tabs { margin-bottom: 20px; display: flex; justify-content: center; gap: 10px; }
+        .rank-tab-btn { padding: 10px 20px; font-size: 16px; cursor: pointer; border: 2px solid #2196F3; background: white; color: #2196F3; border-radius: 8px; font-weight: bold; transition: all 0.2s; }
+        .rank-tab-btn:hover, .rank-tab-btn.active { background: #2196F3; color: white; }
+        .rank-item { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid #ddd; font-size: 20px; font-weight: bold;}
+
+        /* 하단 저작권 정보 */
+        .footer-info { margin-top: 40px; font-size: 13px; color: #888; line-height: 1.6; border-top: 1px solid #eee; padding-top: 20px; text-align: center; }
+        .footer-info p { margin: 5px 0; }
+        .footer-info a { color: #888; text-decoration: none; }
+        .footer-info a:hover { text-decoration: underline; }
+        
+        /* 로딩 중 몬스터볼 애니메이션 */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .loading-spin { animation: spin 2s linear infinite; width: 100px !important; height: 100px !important; }
+    </style>
+</head>
+<body>
+
+    <div id="main-screen" class="container">
+        <h1>오박사의 실루엣 퀴즈</h1>
+        <img src="oak_normal.png" alt="오박사님" style="width: 200px; margin-bottom: 20px;">
+        
+        <div id="main-buttons">
+            <button class="menu-btn btn-start" onclick="showDifficulty()">게임 시작</button>
+            <button class="menu-btn btn-ranking" onclick="showRankingFromMain()">랭킹 확인하기</button>
+        </div>
+
+        <div id="difficulty-options" style="display: none;">
+            <h2 style="color: #555; margin-bottom: 20px;">도전할 난이도를 선택하렴!</h2>
+            <button class="diff-btn diff-normal" onclick="startGame('normal')">🟢 노말 (10문제 / 10초)</button>
+            <button class="diff-btn diff-hard" onclick="startGame('hard')">🟠 어려움 (20문제 / 5초)</button>
+            <button class="diff-btn diff-master" onclick="startGame('master')">🔴 포켓몬 마스터 (30문제 / 3초)</button>
+            <button class="menu-btn btn-back" onclick="goBackToMain()">뒤로 가기</button>
+        </div>
+
+        <div class="footer-info">
+            <p>🛠️ <strong>제작자:</strong> 킹제이 | 본 프로젝트는 비상업적 목적으로 제작된 팬 메이드 콘텐츠입니다.</p>
+            <p><strong>API 출처:</strong> <a href="https://pokeapi.co/" target="_blank">PokeAPI</a> | <strong>저작권:</strong> © Pokémon. © Nintendo / Creatures Inc. / GAME FREAK inc.</p>
+        </div>
+    </div>
+
+    <div id="game-container" class="container">
+        <div id="header">현재 점수: <span id="score">0</span>점 (문제: <span id="question-count">1</span>/<span id="total-questions">10</span>)</div>
+        
+        <div id="timer-container">
+            <div id="timer-text">남은 시간: 10초</div>
+            <div id="timer-bar-bg"><div id="timer-bar"></div></div>
+        </div>
+        
+        <div class="main-area">
+            <div class="quiz-area">
+                <img id="pokemon-img" class="silhouette" src="" alt="포켓몬">
+            </div>
+            <div class="oak-area">
+                <div id="speech-bubble" class="speech-bubble">이 포켓몬은 누구일까?</div>
+                <img id="oak-img" src="oak_normal.png" alt="오박사님">
+            </div>
+        </div>
+
+        <div class="options" id="options"></div>
+    </div>
+
+    <div id="ranking-board" class="container">
+        <h2 style="color: #2196F3; font-size: 28px;">🏆 명예의 전당 🏆</h2>
+        
+        <div id="ranking-tabs">
+            <button class="rank-tab-btn active" id="tab-normal" onclick="fetchAndDisplayRankings('normal')">노말</button>
+            <button class="rank-tab-btn" id="tab-hard" onclick="fetchAndDisplayRankings('hard')">어려움</button>
+            <button class="rank-tab-btn" id="tab-master" onclick="fetchAndDisplayRankings('master')">마스터</button>
+        </div>
+
+        <div id="ranking-list" style="margin-bottom: 30px; min-height: 200px;"></div>
+        <button class="menu-btn btn-back" onclick="location.reload()" style="width: 100%;">메인 화면으로 돌아가기</button>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCn2FIG7O8uM-oRB1wWTpSTabMo9oooGFw",
+        authDomain: "pokemon-quiz-f061a.firebaseapp.com",
+        projectId: "pokemon-quiz-f061a",
+        storageBucket: "pokemon-quiz-f061a.firebasestorage.app",
+        messagingSenderId: "281608737778",
+        appId: "1:281608737778:web:477a49dea69080c177116b"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // 상태 변수
+    let currentDifficulty = 'normal'; // 현재 플레이 중인 난이도 저장용
+    let currentScore = 0;
+    let questionCount = 0;
+    let maxQuestions = 10; 
+    let currentAnswer = "";
+    let isClickable = false;
+
+    let timerInterval;
+    let maxTime = 10; 
+    let timeLeft = maxTime;
+
+    const scoreEl = document.getElementById("score");
+    const countEl = document.getElementById("question-count");
+    const totalCountEl = document.getElementById("total-questions");
+    const pokemonImg = document.getElementById("pokemon-img");
+    const oakImg = document.getElementById("oak-img");
+    const speechBubble = document.getElementById("speech-bubble");
+    const optionsEl = document.getElementById("options");
+    const timerText = document.getElementById("timer-text");
+    const timerBar = document.getElementById("timer-bar");
+
+    function showDifficulty() {
+        document.getElementById("main-buttons").style.display = "none";
+        document.getElementById("difficulty-options").style.display = "block";
+    }
+
+    function goBackToMain() {
+        document.getElementById("difficulty-options").style.display = "none";
+        document.getElementById("main-buttons").style.display = "block";
+    }
+
+    function startGame(difficulty) {
+        currentDifficulty = difficulty; // 선택한 난이도 저장
+        if (difficulty === 'normal') { maxQuestions = 10; maxTime = 10; }
+        else if (difficulty === 'hard') { maxQuestions = 20; maxTime = 5; }
+        else if (difficulty === 'master') { maxQuestions = 30; maxTime = 3; }
+
+        currentScore = 0;
+        questionCount = 0;
+        totalCountEl.textContent = maxQuestions; 
+
+        document.getElementById("main-screen").style.display = "none";
+        document.getElementById("game-container").style.display = "block";
+
+        loadQuestion();
+    }
+
+    function getRandomIDs(count, maxId = 493) {
+        const ids = new Set();
+        while(ids.size < count) { ids.add(Math.floor(Math.random() * maxId) + 1); }
+        return Array.from(ids);
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        timeLeft = maxTime;
+        updateTimerUI();
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerUI();
+            if (timeLeft <= 0) timeOver();
+        }, 1000);
+    }
+
+    function stopTimer() { clearInterval(timerInterval); }
+
+    function updateTimerUI() {
+        timerText.textContent = `남은 시간: ${timeLeft}초`;
+        const percentage = (timeLeft / maxTime) * 100;
+        timerBar.style.width = percentage + "%";
+
+        if (percentage > 50) {
+            timerBar.style.backgroundColor = "#4CAF50"; 
+            timerText.style.color = "#555";
+        } else if (percentage > 25) {
+            timerBar.style.backgroundColor = "#FF9800"; 
+            timerText.style.color = "#FF9800";
+        } else {
+            timerBar.style.backgroundColor = "#F44336"; 
+            timerText.style.color = "#F44336";
+        }
+    }
+
+    function timeOver() {
+        if (!isClickable) return;
+        isClickable = false;
+        stopTimer();
+
+        Array.from(optionsEl.children).forEach(b => b.disabled = true);
+        pokemonImg.classList.remove("silhouette");
+
+        Array.from(optionsEl.children).forEach(b => {
+            if (b.textContent === currentAnswer.name) {
+                b.style.backgroundColor = "#4CAF50";
+                b.style.color = "white";
+            }
+        });
+
+        speechBubble.textContent = "시간 초과란다! 조금 더 서두르렴.";
+        speechBubble.style.color = "red";
+        oakImg.src = "oak_sad.png"; 
+
+        setTimeout(loadQuestion, 2500);
+    }
+
+    async function loadQuestion() {
+        if (questionCount >= maxQuestions) {
+            endGame();
+            return;
+        }
+
+        questionCount++;
+        countEl.textContent = questionCount;
+        
+        stopTimer();
+        timerBar.style.width = "100%";
+        timerBar.style.backgroundColor = "#4CAF50";
+        timerText.textContent = "로딩 중...";
+        timerText.style.color = "#555";
+        
+        // 🚨 1. 로딩 중 몬스터볼 표시 처리
+        pokemonImg.classList.remove("silhouette"); // 실루엣 제거 (몬스터볼 색상 보이기)
+        pokemonImg.classList.add("loading-spin"); // 빙글빙글 도는 애니메이션 추가
+        pokemonImg.src = "pokeball.png"; // 몬스터볼 이미지 띄우기 (폴더에 pokeball.png 가 있어야 합니다!)
+        
+        oakImg.src = "oak_normal.png"; 
+        speechBubble.textContent = "도감에서 포켓몬을 불러오는 중이란다...";
+        speechBubble.style.color = "black";
+        optionsEl.innerHTML = "";
+        isClickable = false;
+
+        try {
+            const randomIds = getRandomIDs(4);
+            const fetchPromises = randomIds.map(id => 
+                fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`).then(res => res.json())
+            );
+            const speciesData = await Promise.all(fetchPromises);
+            
+            const choices = speciesData.map(data => {
+                const koNameObj = data.names.find(n => n.language.name === 'ko');
+                return {
+                    name: koNameObj ? koNameObj.name : data.name,
+                    img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`
+                };
+            });
+
+            currentAnswer = choices[Math.floor(Math.random() * 4)];
+
+            // 🚨 2. 진짜 포켓몬 이미지를 백그라운드에서 미리 로드하기
+            const realImg = new Image();
+            realImg.src = currentAnswer.img;
+            realImg.onload = () => {
+                // 진짜 포켓몬 로딩이 끝나면 몬스터볼을 진짜 포켓몬으로 교체!
+                pokemonImg.classList.remove("loading-spin"); // 도는 애니메이션 중지
+                pokemonImg.src = currentAnswer.img; // 포켓몬 이미지 세팅
+                pokemonImg.classList.add("silhouette"); // 다시 까맣게 칠하기
+                
+                speechBubble.textContent = "이 포켓몬은 누구일까?";
+                choices.forEach(choice => {
+                    const btn = document.createElement("button");
+                    btn.className = "option-btn";
+                    btn.textContent = choice.name;
+                    btn.onclick = () => checkAnswer(choice.name, btn);
+                    optionsEl.appendChild(btn);
+                });
+                isClickable = true;
+                startTimer();
+            };
+
+        } catch (error) {
+            console.error("PokeAPI 에러:", error);
+            speechBubble.textContent = "통신에 문제가 생겼구나! 새로고침 해보렴.";
+        }
+    }
+
+    function checkAnswer(selectedName, btn) {
+        if (!isClickable) return;
+        isClickable = false;
+        
+        stopTimer();
+        Array.from(optionsEl.children).forEach(b => b.disabled = true);
+        pokemonImg.classList.remove("silhouette"); 
+
+        if (selectedName === currentAnswer.name) {
+            currentScore += 10;
+            scoreEl.textContent = currentScore;
+            btn.style.backgroundColor = "#4CAF50";
+            btn.style.color = "white";
+            
+            speechBubble.textContent = "잘했구나! 정답이란다!";
+            speechBubble.style.color = "blue";
+            oakImg.src = "oak_smile.png"; 
+        } else {
+            btn.style.backgroundColor = "#f44336";
+            btn.style.color = "white";
+            
+            Array.from(optionsEl.children).forEach(b => {
+                if (b.textContent === currentAnswer.name) {
+                    b.style.backgroundColor = "#4CAF50";
+                    b.style.color = "white";
+                }
+            });
+
+            speechBubble.textContent = "아니란다~ 다시 생각해보렴.";
+            speechBubble.style.color = "red";
+            oakImg.src = "oak_sad.png"; 
+        }
+
+        setTimeout(loadQuestion, 2500);
+    }
+
+    // ==========================================
+    // 난이도별 랭킹 시스템
+    // ==========================================
+    
+    async function endGame() {
+        stopTimer();
+        document.getElementById("game-container").style.display = "none";
+        document.getElementById("ranking-board").style.display = "block";
+        
+        const playerName = prompt(`[${currentDifficulty.toUpperCase()}] 게임 종료!\n랭킹에 등록할 이름을 입력하세요:`) || "익명 트레이너";
+        const listEl = document.getElementById("ranking-list");
+        listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>서버에 랭킹을 저장하는 중...</div>";
+
+        try {
+            // 선택했던 난이도 이름표를 붙여서 DB 컬렉션 분리 저장! (ex: pokeRankings_normal)
+            await db.collection("pokeRankings_" + currentDifficulty).add({
+                name: playerName,
+                score: currentScore,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            // 저장 후 현재 플레이한 난이도 랭킹 띄우기
+            fetchAndDisplayRankings(currentDifficulty);
+        } catch (error) {
+            console.error("랭킹 저장 에러:", error);
+            listEl.innerHTML = "<div class='rank-item' style='color:red;'>랭킹 서버 오류가 발생했습니다.</div>";
+        }
+    }
+
+    function showRankingFromMain() {
+        document.getElementById("main-screen").style.display = "none";
+        document.getElementById("ranking-board").style.display = "block";
+        fetchAndDisplayRankings('normal'); // 기본으로 노말 랭킹 띄우기
+    }
+
+    // 특정 난이도의 랭킹을 DB에서 불러와서 그리는 함수
+    async function fetchAndDisplayRankings(difficulty) {
+        // 탭 버튼 색상 활성화 처리
+        document.querySelectorAll('.rank-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tab-${difficulty}`).classList.add('active');
+
+        const listEl = document.getElementById("ranking-list");
+        listEl.innerHTML = "<div class='rank-item' style='justify-content:center;'>서버에서 랭킹을 불러오는 중...</div>";
+        
+        try {
+            // 해당 난이도의 컬렉션에서 데이터 가져오기
+            const snapshot = await db.collection("pokeRankings_" + difficulty)
+                                     .orderBy("score", "desc")
+                                     .limit(5)
+                                     .get();
+            
+            listEl.innerHTML = ""; 
+            
+            if (snapshot.empty) {
+                listEl.innerHTML = "<div class='rank-item' style='justify-content:center; color:#888;'>아직 이 난이도에 등록된 랭커가 없습니다!</div>";
+                return;
+            }
+
+            let rank = 1;
+            snapshot.forEach((doc) => {
+                const r = doc.data();
+                const color = rank === 1 ? "#FFD700" : "#333";
+                listEl.innerHTML += `
+                    <div class="rank-item" style="color: ${color};">
+                        <span>${rank}위: ${r.name}</span> 
+                        <span style="color:#4CAF50;">${r.score}점</span>
+                    </div>`;
+                rank++;
+            });
+        } catch (error) {
+            console.error("랭킹 불러오기 에러:", error);
+            listEl.innerHTML = "<div class='rank-item' style='color:red;'>데이터베이스 연결에 실패했습니다.</div>";
+        }
+    }
+</script>
+</body>
+</html>
